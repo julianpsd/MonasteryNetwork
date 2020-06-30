@@ -1,0 +1,163 @@
+---
+title: "Faction Centrality in a Monastery Network"
+subtitle: "Sociology of Social Networks"
+author: "Julian Posada"
+date: "31 March 2018"
+abstract: "The doctoral thesis of Samuel F. Sampson describes a monastery with opposing progressive and conservative factions of novices. This exercise uses the network compiled by Sampson, regarding likeness and dislikeness relations, to explore the correlation between the cohesion of the factions and their centrality. The comparison suggests that the primary factions in the debate present the highest in-degree centrality but average results in other areas, whereas the smaller factions show low centrality but high cohesiveness. Finally, despite having low cohesiveness, the high centrality of the Interstitial group implies a privileged position in the exchanges between the main factions of the monastery."
+classoption: a4paper
+output: 
+  pdf_document:
+    toc: TRUE
+    toc_depth: 3
+    number_sections: TRUE
+    highlight: tango
+    fig_caption: TRUE
+bibliography: bibliography.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, fig.height=4, fig.width=4)
+
+## Libraries ####
+library(igraph)
+library(intergraph)
+library(statnet)
+library(sna)
+library(rms)
+library(kableExtra)
+library(knitr)
+
+## Data import ####
+setwd('./data')
+Snodes <- data.frame(read.csv2("Sampson_nodes.csv", header=T, as.is=T))
+Sedges <- data.frame(read.csv2("Sampson_edges.csv", header=T, as.is=T))
+Sedges_pos <- data.frame(read.csv2("Sampson_edges_pos.csv", header=T, as.is=T))
+Sedges_neg <- data.frame(read.csv2("Sampson_edges_neg.csv", header=T, as.is=T))
+Sall_tran <- read.csv2("transitivity.csv")
+Spos_cen <- read.csv2("degree_pos.csv")
+Sneg_cen <- read.csv2("degree_neg.csv")
+
+## Graph creation ####
+Sall <- graph.data.frame(Sedges, Snodes, directed=TRUE)
+Sneg <- graph.data.frame(Sedges_neg, Snodes, directed=TRUE)
+Spos <- graph.data.frame(Sedges_pos, Snodes, directed=TRUE)
+```
+
+# Introduction
+
+The data used in this exercise derives from an ethnographic study conducted by @Sampson1968 that describes the social relations of a group of novices that were preparing to join a monastic order in the New England region of the United States. The original networks observed by Sampson consisted of four networks with positive and negative ties on the relations. These networks corresponded to esteem and disesteem, positive and negative influence, liking and disking, and praise and blame. Sampson asked the respondents to his survey to rank the six fellow novices that corresponded the best to the four categories according to the positive of the negative value of their evaluation.
+
+Initially, the collected data was longitudinal, since Sampson surveyed the participants of his study on five different occasions. Between the fourth (T4) and fifth (T5) measurements, the monastic order expelled four of the novices. Moreover, most of the respondents participated in a seminary at 'Cloisterville' before joining the seminar. Based on his research, Sampson recognised four distinctive groups among the novices. The _loyal opposition_, who entered the monastery before the others, defended the practices of the order. The _young turks_, who arrived later in a period of transition, and wanted to change the traditions. The _insterstitials_ took no side in the debate. And the _outcasts_ failed to gain acceptance in the group. 
+
+Based on the available data from one of the four networks, this project attempts to study the correlation between likeness (or dislikeness) and network centrality by taking into consideration the membership in one of the four clusters defined by Sampson's research. 
+
+# Data
+
+The present data were compiled by @Batagelj2006 for the Pajek datasets and later converted to Rdata format by the UC Irvine Network Data Repository where it is available under _creative commons_ licence. This dataset consists of only the liking and disliking network, one of the four listed in Sampson's research, and presents 25 nodes and 311 edges, with a _name_ attribute for each node and a _weight_ attribute for each edge.  
+
+Since Sampson asked each of the novices to rank their top 3 peers regarding likeness and the same concerning dislikeness, the values of the _weight_ attribute range from -3 to 3. Since the data is longitudinal, the edges could present variations corresponding to differences between the five different times where Sampson realised the survey. Considering that the negative values may generate problems with some of the calculations, and after a recoding process, this study considered three graphs from the original data. A complete graph from the original network destined for representation, where the negative and positive values correspond to different colour schemes. And then, a graph with the positive weight values only; and a graph only with the negative values. The latter two destined for calculations. 
+
+To transform the longitudinal data to only one network for this exercise, edges with a positive or negative value that differed only in ranking (for instance -2 in one survey and -3 in the other), having the same node source and target, were simplified. Only when they had a positive attribute at one moment and then a negative attribute they were kept separate. This process reduced the total edge number to 260.
+
+Additionally, the original available data presented two measurements. A complete set used in this study and a subset named 'T4' that presents additional attributes: the participation to the 'Cloisterville' seminar and the four different cluster attributes. This study chose not to use the 'T4' set because, despite the additional information, the network loses relational data, presenting only 18 of the 25 nodes (more than the four novices expelled according to Sampson's thesis) and 33 of the 311 original edges.  Instead, the incomplete data on the clusters and the seminar were added to the full network, leaving _not applicable_ values for the remaining nodes.
+
+
+\begin{center}
+\textbf{Likeness and Dislikeness Networks of Sampson's Monastery}
+\end{center}
+
+```{r fig1, echo=FALSE, include= TRUE, fig.cap="Figure 1"}
+## Graph plot ####
+Sall_layout <- layout.fruchterman.reingold(Sall)
+#par(mfrow=c(1,3))
+plot(Sall,
+     edge.arrow.size = .1,
+     rescale = TRUE,
+     vertex.color = V(Sall)$Factions,
+     vertex.shape = ifelse(V(Sall)$Cloisterville == "1", "square","circle"),  
+     edge.color= ifelse(E(Sall)$Relation == "Positive","blue","red"),
+     main = "Complete Network")
+plot(Spos,
+     edge.arrow.size = .1,
+     rescale = TRUE,
+     vertex.color = V(Sall)$Factions,
+     vertex.shape = ifelse(V(Sall)$Cloisterville == "1", "square","circle"),  
+     edge.color = "blue",
+     main = "Likeness Network")
+plot(Sneg,
+     edge.arrow.size = .1,
+     rescale = TRUE,
+     vertex.color = V(Sall)$Factions,
+     vertex.shape = ifelse(V(Sall)$Cloisterville == "1", "square","circle"),  
+     edge.color = "red",
+     main = "Dislikeness Network")
+```
+
+\begin{center}
+\textbf{Note:} \small\textbf{Square nodes:} Attented the Cloisterville seminar. \textbf{Circle nodes:} Did not attend the Cloisterville seminar. \textbf{Blue edges:} likeness. \textbf{Red edges:} dislikeness. \textbf{Orange nodes:} Young Turks. \textbf{Blue nodes:} Loyal Opposition. \textbf{Green nodes:} The Outcasts. \textbf{Yellow nodes:} Interstitial Group. \textbf{White nodes:} Unknown Faction
+\end{center}
+\normalsize
+
+# Methodology
+
+This exercise aims to examine if the most cohesive factions among the monastery novices are those with the most influence (regarding likeness versus dislikeness). To this end, two calculations are necessary: the average transitivity per faction as well as their average centrality. 
+
+## Transitivity
+
+Sampson's research had already established four different groups in his thesis. However, there is little information available on the nature of these groups, except for the main two. The _young turks_ wanted to change, reform, or at least challenge the traditions or dogmas of the monastery; and the _loyal opposition_ was a group that aimed to preserve the status quo. There is little information on the remaining two factions beside that their names can imply: the _outcasts_ might be a faction excluded from the central debate, and perhaps from other social activities; and novices with a neutral stance, but still being part of social activities, could comprise the _interstitial_ group. Unfortunately, since the factions data was extracted from the T4 measure, corresponding only to 18 of the 25 nodes, there are seven vertexes without a faction attribute. Instead of ignoring them, this exercise considered them in a separate _unknown_ group. 
+
+This study employs transitivity measures to estimate the cohesion of these different groups. It calculates the ratio of the cliques connected to a node and the triples centred on the node while ignoring the directedness of the edges (@Merckle2016, pp. 61-63). Then the average transitivity of the members of a faction, for the negative and positive links, gives us an estimate of the transitivity for each group. It is worth noting that the triads composed by nodes outside of the faction enter into the equation, but the _ego_ nodes are always those of faction members. 
+
+## Centrality Measures
+
+The exercise considers centrality measures based on the positives and negative ties of the original network. The directed networks could allow for both degree calculations of centrality. Although out-degree centrality could imply an active social actor since it would evaluate '_openess_, _initiative_, and _action_' (@Tubaro2018a, p. 9), the nature of the survey makes this inapplicable, because respondents could only choose three individuals.  On the other hand, the in-degree centrality reveals the importance and the _prestige_ of the players in the network (@Lazega1998, p. 42), which satisfies the research question of this exercise. 
+
+Three different centrality measures are examined: _degree_, _closenness_ , and _betweenness_. In the case of Sampson's network, the first examines the number of novices that declared liking (or disliking) another novice. The second explores the _proximity_, or the number of links between _ego_ and the other novices. Finally, betweenness centrality measures the control that _ego_ can exercise by being situated between other actors (@Lazega1998, pp. 42-43). The comparison between these three calculations will unveil in which situations the interactions between the different monastery factions have more importance.
+
+# Results
+
+## Community Cohesion
+
+Table 1 presents a summary of the average local transitivity per _Faction_, taking into consideration the positive (likeness) and negative (dislikeness) edges. Overall, considering that empiric networks have a transitivity score ranging from 0.3 to 0.6 (@Tubaro2018, p. 36), the global transitivity values for each graph (positive and negative) are average, with transitivity of 0.45 for the likeness network and 0.39 for the dislikeness network. However, looking at individual values for each node, and their average regarding Faction as listed in Table 1, all the sub-groups except for the _unknown_ present low transitivity. Thus, the _young turks_ show average transitivity of 0.24 for both networks,  the _loyal opposition_ 0.20 for the positive and 0.23 for the negative, the outcasts 0.20 and 0.21, and the _interstitial_ group has the lowest score with 0.18 and 0.15. 
+
+```{r table1}
+kable(Sall_tran, format = "latex", longtable = T, booktabs = T, caption = "Average transitivity per Faction")
+```
+
+The results of the positive network suggest that, apart from the _unknown_ group, the factions are generally lowly cohesive, since their connexions are not combined between them. In other words, their 'liked' peers tend not to like each other; similarly with the 'dislike' relation. In general, the sub-groups that seem to be the more excluded in the network representation, that is the _outcasts_ and the _unkwnown_ cluster, tend to be the more cohesive. Whereas the principal groups in the political dispute, according to Sampson are less cohesive. Finally, the _interstitial_ cluster is the least cohesive, and its members are scattered in the network representation between the main two groups.
+
+## Novice Centrality
+
+The following tables present a summary of the average centrality measures for each of the monastery's factions. While Table 2 contains information regarding the likeness network, Table 3 includes the results of the unlikeness graph. 
+
+```{r table2}
+kable(Spos_cen, format = "latex", longtable = T, booktabs = T, caption = "Average centrality measures for 'Likeness' per Faction")
+```
+
+Regarding the likeness network, the central groups described in Sampson's research, the _young turks_ and the _loyal opposition_, have the highest in-degree centrality among the factions. Although their centrality scores are similar, the _loyal opposition_'s is slightly higher, with an average of 7.9 in-degree edges instead of 7.0. The other faction presenting an essential in-degree centrality score is the _interstitial_ group with 5. On the other hand, the excluded groups, the _outcasts_ and the _unknown_ cluster, have low centrality scores with averages of 2.6 and 3.0 respectively.
+
+The closeness centrality measures differ from the in-degree results. The _loyal opposition_ and the _young turks_ maintain the highest scores than any other faction with 0.023 in both cases, and the _interstitial_ group follows closely with 0.02. The last two sub-groups of excluded factions present lower scores with 0.01 in both cases. Regarding betweenness centrality, the _loyal opposition_ keeps the top score with an average of 52.87, followed by the _interstitial_ group with 38.91. The _young turks_ faction comes third with a mean centrality of 34.39 and the excluded groups come last with scores of 13.01 and 7.45 for the _outcasts_ and the _unknown_ group respectively.
+
+```{r table3}
+kable(Sneg_cen, format = "latex", longtable = T, booktabs = T, caption = "Average centrality measures for 'Dislikeness' per Faction")
+```
+
+Overall, the centrality scores for the 'dislike' network are higher for the _loyal opposition_, the _interstitial_ group and the _outcasts_, than for the _young turks_ and the _unknown_ cluster. The _loyal opposition_ retains the spot for the most liked but also the most disliked faction regarding in-degree centrality, contrary to the _young turks_ who present a high score in the likeness centrality but not in the dislikeness one. The _outcasts_ and the _interstitial_ sub-groups also tend to present higher negative scores than those regarding likeness, especially in the case of the _outcasts_ who perform poorly in the positive measures, contrary to those concerning the negative network. Finally, the _unknown_ faction continues to exhibit low centrality measures in the case of the dislikeness network, similarly to its results in the positive network.
+
+# Discussion
+
+In Sampson's research, he presents the internal conflict at the monastery as an opposition between factions. The _loyal opposition_ leads a more conservative stance, whereas the _young turks_ push for a progressive agenda. Around them, there are two smaller groups, an _interstitial_ cluster or 'middle ground' group, and the excluded group of _outcasts_. The data also presents a series of unaffiliated actors that, for this exercise, are named the '_unknown_ group'. 
+
+The graphic representation and the transitivity analysis show that the sub-groups identified by Samson are identifiable and are, to some extent, cohesive. The smaller and excluded groups, the _outcasts_ and the _unknown_ cluster, tend to present higher transitivity than the main factions. However, they also have the lowest centrality scores in the three measures (_in-degree_, _closeness_, and _betweenness_). In the case of the _outcasts_, this confirms the idea of an isolated and peripherical group that, although cohesive, remain excluded from the social interactions between the main factions. The _unknown_ group seems to share the same characteristics than the _outcasts_ regarding cohesion and centrality but, since their nodes cannot be related to Sampson's observations, no further comments can be asserted.
+
+Both dominant factions share similar transitivity and centrality scores. However, the _loyal opposition_'s results are slightly higher than the _young turks_', the main difference being that the first has a lower betweenness centrality and lower transitivity. Their overall lower transitivity correspond to the ties of their members with adjacent factions, as seen in the graphic representation of the network, such as the _young turks_ with the _outcasts_, the _loyal opposition_ with the unknown cluster, or even the ties between the two principal factions.  
+
+Finally, the _interstitial_ group presents opposite results compared with the excluded factions, since their transitivity scores are the lowest, but their closeness and betweenness centrality rates are considerably high. These results suggest that the actors that belong to this cluster, as its name indicates, are situated _between_ the main factions of the monastery without being part of them. Therefore, even though as a group their cohesiveness is low, as individuals they have a privileged position between the actors of the monastery, making them possibly the most independent of the whole network.
+
+The approach that was undertaken in this exercise presents several limits. First, as a general problem of the three centrality measures previously used, the exercise has not distinguished between the ties with peripherical actors and those with central individuals in the calculation of the centrality (@Lazega1998). Second, the unknown cluster was considered as a different and independent faction, but it could have members that Sampson recognised among the other factions, which would eventually change the overall results of the exercise. Finally, this study did not use much the results of centrality and transitivity from the negative network, since these measures work better with positive ties rather than with negative ones. 
+
+# Conclusion
+
+This exercise explored the correlation between cohesion (regarding transitivity) and centrality (as in-degree, betweenness, and closeness centrality) among factions in a monastery of the New England region of the United States. It found that, even though the more excluded groups were not central, they were highly cohesive while still preserving ties with one of the two major factions. These factions presented the highest in-degree scores of centrality but where not the most cohesive, presenting the highest betweenness and closeness centrality due to their attachment to peripherical sub-groups. Finally, the Interstitial group presented a considerably high betweenness and closeness centrality despite their low transitivity, which suggests a central role in the exchanges between the major factions and a high degree of autonomy. 
+
+# References
