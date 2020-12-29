@@ -2,7 +2,7 @@
 
 ## Description
 
-This repository contains an exercise of social network analysis with R where I applied several statistical methods to analyze the structure of a complete social network of monks from a monastery.
+This repository contains an the final exercise of the “Sociology of Social Networks” course at the École Normale Supérieure and the École des Hautes Études en Sciences Sociales. This is a social network analysis with R where I applied several statistical methods to analyze the structure of a complete social network of monks from a monastery.
 
 ## Abstract
 
